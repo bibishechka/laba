@@ -72,7 +72,7 @@ void displaySortedDishes(const vector<Dish>& dishes) {
 }
 
 void calculateMaxDishes(const vector<Dish>& dishes, int availableTime) {
-    cout << "\nМаксимальное количество блюд за " << availableTime << " минут:\n";
+    cout << "\nмаксимальное количество блюд за " << availableTime << " минут: " endl;
     double totalPrice = 0;
     int count = 0;
 
@@ -85,9 +85,10 @@ void calculateMaxDishes(const vector<Dish>& dishes, int availableTime) {
         }
         if (availableTime <= 0) break;
     }
-
-    cout << "Всего блюд: " << count << "\n";
-    cout << "Общий доход: " << fixed << setprecision(2) << totalPrice << "\n";
+    //kveufof
+    //lcmkajuhifh
+    cout << "всего блюд: " << count << endl;
+    cout << "общий доход: " << fixed << setprecision(2) << totalPrice << endl;
 }
 
 int main() {
