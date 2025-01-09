@@ -5,23 +5,18 @@
 #include <regex>
 #include <algorithm>
 #include <cctype>
+
 using namespace std;
 
 struct tema {
-    string name;     // Имя студента
-    string nazvanie; // Название темы
-    string date;     // Дата выдачи
+    string name;     
+    string title;    
+    string date;    
 };
 
-// Удаление лишних пробелов
-void trim(string& s) {
-    s.erase(s.begin(), find_if(s.begin(), s.end(), [](unsigned char ch) { return !isspace(ch); }));
-    s.erase(find_if(s.rbegin(), s.rend(), [](unsigned char ch) { return !isspace(ch); }).base(), s.end());
-}
-
-// Функция для проверки строки (дополнительная валидация)
-bool validateLine(const string& name, const string& nazvanie, const string& date) {
-    regex date_regex(R"(\d{2}\.\d{2}\.\d{4})"); // Формат DD.MM.YYYY
+// Функция для проверки строки
+bool validateLine(const string& name, const string& title, const string& date) {
+    regex date_regex(R"(\d{2}\.\d{2}\.\d{4})"); 
     if (!regex_match(date, date_regex)) {
         cout << "Ошибка: Некорректная дата: " << date << "\n";
         return false;
@@ -30,7 +25,7 @@ bool validateLine(const string& name, const string& nazvanie, const string& date
         cout << "Ошибка: Имя студента не указано.\n";
         return false;
     }
-    if (nazvanie.empty()) {
+    if (title.empty()) {
         cerr << "Ошибка: Название темы не указано.\n";
         return false;
     }
@@ -54,23 +49,21 @@ vector<tema> readDataFromFile(const string& filename) {
     regex format3(R"((.+)\s+(.+)\s+(\d{2}\.\d{2}\.\d{4}))"); // "Название" "Имя" Дата
 
     while (getline(ist, line)) {
-        trim(line); // Убираем пробелы
         smatch match;
         tema obj;
 
-        // Проверка строки на соответствие каждому формату
         if (regex_match(line, match, format1)) {
             obj.date = match[1];
-            obj.nazvanie = match[2];
+            obj.title = match[2];
             obj.name = match[3];
         }
         else if (regex_match(line, match, format2)) {
             obj.name = match[1];
             obj.date = match[2];
-            obj.nazvanie = match[3];
+            obj.title = match[3];
         }
         else if (regex_match(line, match, format3)) {
-            obj.nazvanie = match[2];
+            obj.title = match[2];
             obj.name = match[1];
             obj.date = match[3];
         }
@@ -80,14 +73,13 @@ vector<tema> readDataFromFile(const string& filename) {
         }
 
         // Проверка корректности данных
-        if (validateLine(obj.name, obj.nazvanie, obj.date)) {
+        if (validateLine(obj.name, obj.title, obj.date)) {
             data.push_back(obj);
         }
     }
     return data;
 }
 
-// Функция для вывода данных
 void printData(const vector<tema>& data) {
     if (data.empty()) {
         cout << "Данные отсутствуют или некорректны.\n";
@@ -97,7 +89,7 @@ void printData(const vector<tema>& data) {
     for (const auto& entry : data) {
         cout << "Тема работы:\n";
         cout << "Имя студента: " << entry.name << "\n";
-        cout << "Название темы: " << entry.nazvanie << "\n";
+        cout << "Название темы: " << entry.title << "\n";
         cout << "Дата: " << entry.date << "\n\n";
     }
 }
@@ -115,7 +107,7 @@ void findByDate(const vector<tema>& data, const string& date) {
     for (const auto& entry : data) {
         if (entry.date == date) {
             cout << "Имя студента: " << entry.name << "\n";
-            cout << "Название темы: " << entry.nazvanie << "\n";
+            cout << "Название темы: " << entry.title << "\n";
             cout << "Дата: " << entry.date << "\n\n";
             found = true;
         }
@@ -134,7 +126,6 @@ int main() {
     sort_name(data);
     printData(data);
 
-    // Ввод даты от пользователя и вывод студентов с этой датой
     string inputDate;
     cout << "Введите дату (DD.MM.YYYY): ";
     cin >> inputDate;
