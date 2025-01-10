@@ -1,110 +1,139 @@
 #include <iostream>
 #include <fstream>
-#include <sstream>
+#include <regex>
 #include <string>
 #include <vector>
+#include <sstream>
+#include <map>
 #include <algorithm>
-#include <iomanip>
 
 using namespace std;
 
-class Dish {
-public:
+struct Dish {
     string name;
     double price;
-    int cookTime;
-
-    Dish(const string& name, double price, int cookTime)
-        : name(name), price(price), cookTime(cookTime) {}
-
-    void display() const {
-        cout << "Название: " << name << "\n"
-             << "Цена: " << fixed << setprecision(2) << price << "\n"
-             << "Время приготовления: " << cookTime << " минут\n";
-    }
+    string time;
 };
 
-Dish parseDish(const string& input) {
-    istringstream iss(input);
-    string name;
-    double price;
-    int cookTime;
-
-    getline(iss, name, '"');
-    getline(iss, name, '"');
-    iss >> price >> cookTime;
-
-    return Dish(name, price, cookTime);
+// Функция для извлечения названия блюда
+string extractName(const string& line) {
+    regex name_regex(R"([a-zA-Z]+(?: [a-zA-Z]+)*)");  // Название блюда: последовательность букв (возможны пробелы)
+    smatch match;
+    if (regex_search(line, match, name_regex)) {
+        return match.str();
+    }
+    return "";
 }
 
-bool compareByPrice(const Dish& a, const Dish& b) {
-    return a.price < b.price;
+// Функция для извлечения цены
+double extractPrice(const string& line) {
+    regex price_regex(R"(\d+\.\d{2})");  // Цена: число с плавающей точкой
+    smatch match;
+    if (regex_search(line, match, price_regex)) {
+        return stod(match.str());
+    }
+    return 0.0;
 }
 
-void readDishesFromFile(const string& filename, vector<Dish>& dishes) {
-    ifstream inputFile(filename);
-    if (!inputFile.is_open()) {
-        cerr << "Не удалось открыть файл " << filename << "\n";
-        return;
+// Функция для извлечения времени
+string extractTime(const string& line) {
+    regex time_regex(R"(\d{2}:\d{2})");  // Время: формат "00:00"
+    smatch match;
+    if (regex_search(line, match, time_regex)) {
+        return match.str();
+    }
+    return "";
+}
+
+// Функция для извлечения данных блюда с использованием регулярных выражений
+Dish extractDish(const string& line) {
+    string name = extractName(line);
+    double price = extractPrice(line);
+    string time = extractTime(line);
+
+    // Если время или цена не были найдены, выбрасываем исключение
+    if (time.empty() || price == 0.0) {
+        throw invalid_argument("Invalid data format: Missing time or price");
+    }
+
+    Dish dish;
+    dish.name = name;
+    dish.price = price;
+    dish.time = time;
+
+    return dish;
+}
+
+// Функция для чтения данных из файла
+vector<Dish> readDishesFromFile(const string& filename) {
+    ifstream file(filename);
+    vector<Dish> dishes;
+
+    if (!file.is_open()) {
+        throw runtime_error("Could not open the file");
     }
 
     string line;
-    while (getline(inputFile, line)) {
-        line.erase(0, line.find_first_not_of(" \t"));
-        line.erase(line.find_last_not_of(" \t") + 1);
-
+    while (getline(file, line)) {
         try {
-            Dish myDish = parseDish(line);
-            dishes.push_back(myDish);
-        } catch (const exception& e) {
-            cout << "Ошибка: " << e.what() << "\n";
+            dishes.push_back(extractDish(line)); // Извлекаем данные блюда
+        }
+        catch (const invalid_argument& e) {
+            cerr << "Error: " << e.what() << " in line: " << line << endl;
         }
     }
-    inputFile.close();
+
+    file.close();
+    return dishes;
 }
 
-void displaySortedDishes(const vector<Dish>& dishes) {
-    cout << "\nБлюда отсортированные по цене:\n";
+// Функция для вывода всех блюд
+void printDishes(const vector<Dish>& dishes) {
     for (const auto& dish : dishes) {
-        dish.display();
-        cout << "---------------------\n";
+        cout << "Dish: " << dish.name
+            << ", Price: " << dish.price
+            << ", Time: " << dish.time << endl;
     }
 }
 
-void calculateMaxDishes(const vector<Dish>& dishes, int availableTime) {
-    cout << "\nМаксимальное количество блюд за " << availableTime << " минут:\n";
-    double totalPrice = 0;
-    int count = 0;
+// Функция для сортировки блюд по цене
+void sortDishesByPrice(vector<Dish>& dishes) {
+    sort(dishes.begin(), dishes.end(), [](const Dish& a, const Dish& b) {
+        return a.price < b.price;
+        });
+}
+
+// Функция для подсчета общей стоимости для каждого блюда
+map<string, double> calculateTotalPrice(const vector<Dish>& dishes) {
+    map<string, double> totalPrice;
 
     for (const auto& dish : dishes) {
-        if (dish.cookTime <= availableTime) {
-            dish.display();
-            totalPrice += dish.price;
-            count++;
-            availableTime -= dish.cookTime;
-        }
-        if (availableTime <= 0) break;
+        totalPrice[dish.name] += dish.price;
     }
 
-    cout << "Всего блюд: " << count << "\n";
-    cout << "Общий доход: " << fixed << setprecision(2) << totalPrice << "\n";
+    return totalPrice;
 }
 
 int main() {
-    setlocale(LC_ALL, "ru");
+    try {
+        string filename = "oppo.txt";  // Замените на путь к вашему файлу
+        vector<Dish> dishes = readDishesFromFile(filename);
 
-    vector<Dish> dishes;
-    readDishesFromFile("in.txt", dishes);
+        // Сортировка блюд по цене
+        sortDishesByPrice(dishes);
+        cout << "Dishes sorted by price:" << endl;
+        printDishes(dishes);  // Выводим отсортированные блюда
 
-    sort(dishes.begin(), dishes.end(), compareByPrice);
-    
-    displaySortedDishes(dishes);
-
-    int availableTime;
-    cout << "Введите доступное время для приготовления блюд (в минутах): ";
-    cin >> availableTime;
-
-    calculateMaxDishes(dishes, availableTime);
+        // Подсчет общей стоимости для каждого блюда
+        map<string, double> totalPrice = calculateTotalPrice(dishes);
+        cout << "\nTotal price for each dish:" << endl;
+        for (const auto& entry : totalPrice) {
+            cout << entry.first << ": " << entry.second << endl;
+        }
+    }
+    catch (const exception& e) {
+        cerr << "Error: " << e.what() << endl;
+    }
 
     return 0;
 }
